@@ -6,9 +6,27 @@
 
 # INSTALL DEPENDENCIES ----------------------------------------------------
 
-source('dependencies.R')
 # load all packages
-lapply(required_packages, require, character.only = TRUE)
+library(AMR)
+library(data.table)
+library(DT)
+library(ggridges)
+library(lubridate)
+library(plotly)
+library(qicharts2)
+library(rintrojs)
+library(shiny)
+library(shinyBS)
+library(shinycssloaders)
+library(shinydashboard)
+library(shinyjs)
+library(shinyWidgets)
+library(survival)
+library(ggpubr)
+library(survminer)
+library(tidyverse)
+library(viridis)
+library(zoo)
 
 # DATA TRANSFORMATION AND NEW VARIABLES -----------------------------------
 
@@ -53,14 +71,14 @@ anti <- anti[
   on = .(id, ab_start_date >= adm_start_date, ab_stop_date <= adm_end_date),
   .(id, adm_id, ab_start_date = x.ab_start_date, ab_stop_date = x.ab_stop_date, adm_start_date, adm_end_date, atc_code, ddd_per_day, ab_route),
   nomatch = 0L
-  ]
+]
 
 micro <- micro[
   pat,
   on = .(id, test_date >= adm_start_date, test_date <= adm_end_date),
   .(id, adm_id, test_date = x.test_date, test_number, adm_start_date, adm_end_date, material),
   nomatch = 0L
-  ]
+]
 
 anti_first <- anti %>%
   group_by(id, adm_id) %>%
@@ -102,12 +120,15 @@ antimicrobials <- antimicrobials %>%
   semi_join(anti) %>%
   left_join(admissions)
 
+antibiotics <- AMR::antibiotics
+antibiotics <- antibiotics %>% unnest(atc)
+
 antimicrobials <- antimicrobials %>%
   mutate(ab_days = as.integer(ab_stop_date - ab_start_date),
          ab_timing = as.integer(ab_start_date - adm_start_date),
          ddd_per_prescription = ddd_per_day*ab_days) %>%
   left_join(
-    AMR::antibiotics %>%
+    antibiotics %>%
       select(
         atc_code = atc, ab_type = name, ab_group = atc_group2
       ), by = "atc_code") %>%
@@ -178,3 +199,4 @@ fluid_design <- function(id, w, x, y, z) {
     )
   )
 }
+
